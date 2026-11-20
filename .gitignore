@@ -1,0 +1,57 @@
+# Python
+.venv*/
+.uv-cache/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+*.pem
+*.key
+
+# Local application data
+data/
+uploads/
+*.db
+*.sqlite
+*.sqlite3
+chroma_data/
+.chroma/
+.ragspark_store/
+models/
+logs/
+*.log
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Test/scratch artifacts
+.pytest-*/
+backend/.pytest-*/
+backend/tmp-close-test/
+tmp-*/
+*.tsbuildinfo
+
+# Deployment
+.vercel/

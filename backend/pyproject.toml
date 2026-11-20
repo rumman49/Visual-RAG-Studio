@@ -1,0 +1,41 @@
+[project]
+name = "visual-rag-studio-backend"
+version = "0.1.0"
+description = "Local-first API for Visual RAG Studio"
+requires-python = ">=3.11,<3.15"
+dependencies = [
+  "fastapi>=0.120,<1",
+  "uvicorn[standard]>=0.38,<1",
+  "pydantic>=2.12,<3",
+  "pydantic-settings>=2.11,<3",
+  "python-dotenv>=1.1,<2",
+  "sqlalchemy>=2.0,<3",
+  "chromadb>=1.0,<2",
+  "python-multipart>=0.0.20,<1",
+  "pymupdf>=1.26,<2",
+  "httpx>=0.28,<1",
+  "sentence-transformers>=5.1,<6",
+  "ragspark",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.4,<9",
+  "pytest-cov>=6.3,<7",
+  "ruff>=0.14,<1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.fastapi]
+entrypoint = "app.main:app"
+
+[tool.uv.sources]
+ragspark = { git = "https://github.com/Adeebkhann/ragspark.git" }
