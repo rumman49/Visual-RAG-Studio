@@ -1,0 +1,10 @@
+.venv
+.uv-cache
+data
+.ragspark_store
+.pytest*
+.ruff_cache
+tmp-*
+tests
+__pycache__
+.env
