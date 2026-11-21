@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 11-21-2026 12:00
-last_updated: 11-22-2026 02:00
+last_updated: 11-22-2026 03:00
 project: Visual RAG Studio V-4
 project_key: NOKEY
 tracking_system: file-system
@@ -44,8 +44,8 @@ development_status:
   1-6-verified-live-providers: done
   epic-1-retrospective: optional
 
-  epic-2: backlog
-  2-1-workflow-revisions: backlog
+  epic-2: in-progress
+  2-1-workflow-revisions: review
   2-2-save-and-reopen-in-the-editor: backlog
   2-3-export-a-graph-as-a-validated-file: backlog
   2-4-import-a-graph-with-strict-validation: backlog

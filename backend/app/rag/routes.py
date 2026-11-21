@@ -48,6 +48,7 @@ from app.rag.contracts import (
     StorageCollection,
     StorageSummary,
     WorkflowResponse,
+    WorkflowRevisionSummary,
     WorkflowSaveRequest,
 )
 from app.rag.credentials import runtime_credentials
@@ -1667,6 +1668,38 @@ def get_workflow(
         raise HTTPException(
             status_code=404,
             detail={"code": "workflow_not_found", "message": "Saved workflow was not found."},
+        )
+    return WorkflowResponse(**row)
+
+
+@router.get("/workflows/{workflow_id}/revisions", response_model=list[WorkflowRevisionSummary])
+def list_workflow_revisions(
+    workflow_id: str,
+    store: DocumentStore = Depends(get_document_store),
+):
+    revisions = store.list_workflow_revisions(workflow_id)
+    if revisions is None:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "workflow_not_found", "message": "Saved workflow was not found."},
+        )
+    return [WorkflowRevisionSummary(**item) for item in revisions]
+
+
+@router.get("/workflows/{workflow_id}/revisions/{revision}", response_model=WorkflowResponse)
+def get_workflow_revision(
+    workflow_id: str,
+    revision: int,
+    store: DocumentStore = Depends(get_document_store),
+):
+    row = store.get_workflow(workflow_id, revision=revision)
+    if not row:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "workflow_revision_not_found",
+                "message": "Saved workflow revision was not found.",
+            },
         )
     return WorkflowResponse(**row)
 

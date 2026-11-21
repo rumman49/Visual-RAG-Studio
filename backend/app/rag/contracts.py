@@ -225,6 +225,13 @@ class WorkflowResponse(RAGModel):
     graph: dict[str, Any]
     created_at: str
     updated_at: str
+    revision: int = 1
+
+
+class WorkflowRevisionSummary(RAGModel):
+    revision: int
+    name: str
+    created_at: str
 
 
 class DeleteDocumentResponse(RAGModel):

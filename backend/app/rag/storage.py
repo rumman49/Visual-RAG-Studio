@@ -6,7 +6,18 @@ from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
-from sqlalchemy import JSON, DateTime, Integer, String, Text, create_engine, select, text
+from sqlalchemy import (
+    JSON,
+    DateTime,
+    Integer,
+    String,
+    Text,
+    create_engine,
+    delete,
+    func,
+    select,
+    text,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -48,6 +59,23 @@ class WorkflowRow(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
+def _iso_utc(value: datetime) -> str:
+    """SQLite returns naive datetimes; everything stored here is UTC."""
+    return (value if value.tzinfo else value.replace(tzinfo=UTC)).isoformat()
+
+
+class WorkflowRevisionRow(Base):
+    """One immutable snapshot per save; `saved_workflows` mirrors the latest revision."""
+
+    __tablename__ = "workflow_revisions"
+
+    workflow_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    revision: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(240), nullable=False)
+    graph: Mapped[dict] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class DocumentStore:
     def __init__(self, database_url: str, data_root: str | Path):
         self.data_root = Path(data_root).resolve()
@@ -69,6 +97,7 @@ class DocumentStore:
         self.engine = create_engine(database_url, **kwargs)
         self.sessions = sessionmaker(self.engine, expire_on_commit=False)
         Base.metadata.create_all(self.engine)
+        self._backfill_workflow_revisions()
         if database_url.startswith("sqlite") and ":memory:" not in database_url:
             with self.engine.connect() as conn:
                 try:
@@ -275,72 +304,116 @@ class DocumentStore:
                             pass
         return {"cleaned_count": len(cleaned), "cleaned_files": cleaned}
 
+    def _backfill_workflow_revisions(self) -> None:
+        """Workflows saved before revisions existed become revision 1 (idempotent)."""
+        with self.sessions.begin() as session:
+            have = set(session.scalars(select(WorkflowRevisionRow.workflow_id).distinct()))
+            for row in session.scalars(select(WorkflowRow)).all():
+                if row.id not in have:
+                    session.add(
+                        WorkflowRevisionRow(
+                            workflow_id=row.id,
+                            revision=1,
+                            name=row.name,
+                            graph=row.graph,
+                            created_at=row.updated_at,
+                        )
+                    )
+
+    @staticmethod
+    def _workflow_dict(row: WorkflowRow, revision: int, graph=None, name=None, updated=None) -> dict:
+        return {
+            "id": row.id,
+            "name": row.name if name is None else name,
+            "graph": row.graph if graph is None else graph,
+            "created_at": _iso_utc(row.created_at),
+            "updated_at": _iso_utc(row.updated_at if updated is None else updated),
+            "revision": revision,
+        }
+
+    @staticmethod
+    def _latest_revision(session, workflow_id: str) -> int:
+        return (
+            session.scalar(
+                select(func.max(WorkflowRevisionRow.revision)).where(
+                    WorkflowRevisionRow.workflow_id == workflow_id
+                )
+            )
+            or 1
+        )
+
     def save_workflow(self, workflow_id: str, name: str, graph: dict) -> dict:
+        """Create a new revision (the first save creates revision 1) and keep older ones."""
         now = datetime.now(UTC)
         with self.sessions.begin() as session:
-            existing = session.get(WorkflowRow, workflow_id)
-            if existing:
-                existing.name = name
-                existing.graph = graph
-                existing.updated_at = now
-                row_id = existing.id
-                row_name = existing.name
-                row_graph = existing.graph
-                row_created = existing.created_at.isoformat()
-                row_updated = existing.updated_at.isoformat()
+            row = session.get(WorkflowRow, workflow_id)
+            if row:
+                row.name = name
+                row.graph = graph
+                row.updated_at = now
             else:
-                new_row = WorkflowRow(
-                    id=workflow_id,
+                row = WorkflowRow(
+                    id=workflow_id, name=name, graph=graph, created_at=now, updated_at=now
+                )
+                session.add(row)
+            latest = session.scalar(
+                select(func.max(WorkflowRevisionRow.revision)).where(
+                    WorkflowRevisionRow.workflow_id == workflow_id
+                )
+            )
+            revision = (latest or 0) + 1
+            session.add(
+                WorkflowRevisionRow(
+                    workflow_id=workflow_id,
+                    revision=revision,
                     name=name,
                     graph=graph,
                     created_at=now,
-                    updated_at=now,
                 )
-                session.add(new_row)
-                row_id = new_row.id
-                row_name = new_row.name
-                row_graph = new_row.graph
-                row_created = new_row.created_at.isoformat()
-                row_updated = new_row.updated_at.isoformat()
-            return {
-                "id": row_id,
-                "name": row_name,
-                "graph": row_graph,
-                "created_at": row_created,
-                "updated_at": row_updated,
-            }
+            )
+            return self._workflow_dict(row, revision)
 
-    def get_workflow(self, workflow_id: str) -> dict | None:
+    def get_workflow(self, workflow_id: str, revision: int | None = None) -> dict | None:
+        """Return the latest revision, or the exact graph saved at `revision`."""
         with self.sessions() as session:
             row = session.get(WorkflowRow, workflow_id)
             if not row:
                 return None
-            return {
-                "id": row.id,
-                "name": row.name,
-                "graph": row.graph,
-                "created_at": row.created_at.isoformat(),
-                "updated_at": row.updated_at.isoformat(),
-            }
+            if revision is None:
+                return self._workflow_dict(row, self._latest_revision(session, workflow_id))
+            rev = session.get(WorkflowRevisionRow, (workflow_id, revision))
+            if not rev:
+                return None
+            return self._workflow_dict(
+                row, rev.revision, graph=rev.graph, name=rev.name, updated=rev.created_at
+            )
+
+    def list_workflow_revisions(self, workflow_id: str) -> list[dict] | None:
+        with self.sessions() as session:
+            if not session.get(WorkflowRow, workflow_id):
+                return None
+            revs = session.scalars(
+                select(WorkflowRevisionRow)
+                .where(WorkflowRevisionRow.workflow_id == workflow_id)
+                .order_by(WorkflowRevisionRow.revision.desc())
+            ).all()
+            return [
+                {"revision": r.revision, "name": r.name, "created_at": _iso_utc(r.created_at)}
+                for r in revs
+            ]
 
     def list_workflows(self) -> list[dict]:
         with self.sessions() as session:
             rows = session.scalars(select(WorkflowRow).order_by(WorkflowRow.updated_at.desc())).all()
-            return [
-                {
-                    "id": r.id,
-                    "name": r.name,
-                    "graph": r.graph,
-                    "created_at": r.created_at.isoformat(),
-                    "updated_at": r.updated_at.isoformat(),
-                }
-                for r in rows
-            ]
+            return [self._workflow_dict(r, self._latest_revision(session, r.id)) for r in rows]
 
     def delete_workflow(self, workflow_id: str) -> bool:
         with self.sessions.begin() as session:
             row = session.get(WorkflowRow, workflow_id)
             if row:
+                session.execute(
+                    delete(WorkflowRevisionRow).where(WorkflowRevisionRow.workflow_id == workflow_id)
+                )
                 session.delete(row)
                 return True
             return False
