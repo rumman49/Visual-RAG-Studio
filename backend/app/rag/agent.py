@@ -14,17 +14,17 @@ Features:
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from enum import StrEnum
-from typing import Any, Callable
+from typing import Any, ClassVar
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.config import Settings
-from app.rag.chunking import TextChunk
 from app.rag.hybrid import execute_hybrid_retrieval
 from app.rag.multilingual import DEFAULT_ABSTENTION, detect_language, get_multilingual_abstention
-from app.rag.pipeline import PipelineError, answer_query, assemble_context
+from app.rag.pipeline import PipelineError, answer_query
 from app.rag.ragspark_adapters import RagSparkReranker
 
 
@@ -92,7 +92,7 @@ class AgentState(BaseModel):
 class AgentOrchestrator:
     """Bounded, safe agent orchestrator strictly constrained by graph policies and limits."""
 
-    SUPPORTED_TOOLS = {
+    SUPPORTED_TOOLS: ClassVar[set[str]] = {
         "planning",
         "retrieval",
         "rerank",

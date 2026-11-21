@@ -1,5 +1,6 @@
 from dataclasses import asdict
 from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -30,7 +31,7 @@ def make_test_chunk(chunk_id: str, document_id: str, document_name: str, ordinal
 @pytest.fixture
 def client(tmp_path: Path):
     db_file = tmp_path / "test.db"
-    upload_dir = tmp_path / "uploads"
+    tmp_path / "uploads"
     chroma_dir = tmp_path / "chroma"
     test_store = DocumentStore(f"sqlite:///{db_file}", tmp_path)
     test_vs = ChromaVectorStore(chroma_dir)
@@ -143,10 +144,10 @@ def test_delete_document_chunks_only(client):
 
 
 def test_bulk_delete_all_documents(client):
-    test_client, store, vector_store = client
+    test_client, store, _vector_store = client
 
-    doc1 = store.create("doc1.txt", "txt", "text/plain", b"Doc 1 text")
-    doc2 = store.create("doc2.txt", "txt", "text/plain", b"Doc 2 text")
+    store.create("doc1.txt", "txt", "text/plain", b"Doc 1 text")
+    store.create("doc2.txt", "txt", "text/plain", b"Doc 2 text")
 
     # Call DELETE /api/v1/documents
     response = test_client.delete("/api/v1/documents")

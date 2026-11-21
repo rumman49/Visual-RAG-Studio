@@ -5,9 +5,17 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Callable
+from typing import Any
 
 from app.config import Settings
-from app.rag.chunking import TextChunk, chunk_document
+from app.rag.chunking import chunk_document
+from app.rag.multilingual import (
+    SUPPORTED_LANGUAGES,
+    build_multilingual_instructions,
+    detect_language,
+    get_multilingual_abstention,
+    is_multilingual_abstention,
+)
 from app.rag.parser import ParsedDocument, parse_document
 from app.rag.providers import (
     ExtractiveGeneratorProvider,
@@ -17,13 +25,6 @@ from app.rag.providers import (
     OllamaProvider,
     ProviderError,
     SentenceTransformersProvider,
-)
-from app.rag.multilingual import (
-    SUPPORTED_LANGUAGES,
-    build_multilingual_instructions,
-    detect_language,
-    get_multilingual_abstention,
-    is_multilingual_abstention,
 )
 from app.rag.storage import DocumentStore
 from app.rag.vector_store import ChromaVectorStore, MemoryVectorStore, VectorStoreError
@@ -252,7 +253,6 @@ def assemble_context(
     agent_instructions: str | None = None,
 ) -> tuple[str, list[dict]]:
     """Assemble grounded context preserving chunk boundaries, provenance, and source language."""
-    import json
 
     selected: list[dict] = []
     total_len = 0

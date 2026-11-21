@@ -1,10 +1,10 @@
 import tempfile
 from pathlib import Path
-from fastapi.testclient import TestClient
+
 import pytest
+from fastapi.testclient import TestClient
 
 from app.config import Settings
-from app.contracts import ExecutionMode, ImplementationStatus
 from app.main import app
 from app.rag.agent import (
     AgentApprovalPolicy,
@@ -17,14 +17,14 @@ from app.rag.chunking import (
     chunk_document,
     chunk_document_multi,
 )
+from app.rag.graph import validate_traditional_graph
 from app.rag.parser import parse_document
 from app.rag.pipeline import PipelineError, assemble_context, index_document
 from app.rag.planner import IngestionPlanner, PlanningMode
 from app.rag.providers import ExtractiveGeneratorProvider, FastLocalEmbeddingProvider, ProviderError
 from app.rag.storage import DocumentStore
 from app.rag.vector_store import MemoryVectorStore
-from app.registry import REGISTRY, TEMPLATES_BY_ID
-from app.rag.graph import validate_traditional_graph
+from app.registry import TEMPLATES_BY_ID
 
 
 @pytest.fixture
@@ -339,7 +339,7 @@ def test_scenario_1_multiline_goal_and_instructions_persistence(test_client):
 
 
 def test_scenario_2_custom_instructions_reach_agent_runtime():
-    tmpdir, store, v_store, emb_provider, gen_provider, settings, doc_id = _create_test_env(
+    tmpdir, store, v_store, emb_provider, gen_provider, settings, _doc_id = _create_test_env(
         "Tax rule: Provisional collection of taxes takes effect immediately upon declaration."
     )
     try:
@@ -347,7 +347,7 @@ def test_scenario_2_custom_instructions_reach_agent_runtime():
         custom_inst = "Prefix all answers with [OFFICIAL_NOTICE]."
 
         retrieved = v_store.search([0.1] * 384, top_k=2)
-        prompt, supplied = assemble_context(
+        prompt, _supplied = assemble_context(
             "What is provisional tax?",
             retrieved,
             max_chars=4000,
@@ -379,7 +379,7 @@ def test_scenario_2_custom_instructions_reach_agent_runtime():
 
 
 def test_scenario_3_simple_query_no_unnecessary_reranking():
-    tmpdir, store, v_store, emb_provider, gen_provider, settings, doc_id = _create_test_env(
+    tmpdir, store, v_store, emb_provider, gen_provider, settings, _doc_id = _create_test_env(
         "Tax rate is set at fifteen percent per annum."
     )
     try:
@@ -413,7 +413,7 @@ def test_scenario_4_complex_query_triggers_reranking():
         "Capital gains tax targets profits made from selling assets, investments, and shares.\n\n"
         "Compare and contrast both personal income tax and corporate tax structures and filing requirements."
     )
-    tmpdir, store, v_store, emb_provider, gen_provider, settings, doc_id = _create_test_env(multi_paragraph_text)
+    tmpdir, store, v_store, emb_provider, gen_provider, settings, _doc_id = _create_test_env(multi_paragraph_text)
     try:
         orchestrator = AgentOrchestrator(
             goal="Answer comparative queries.",
@@ -439,7 +439,7 @@ def test_scenario_4_complex_query_triggers_reranking():
 
 
 def test_scenario_5_insufficient_evidence_triggers_reformulation_or_abstention():
-    tmpdir, store, v_store, emb_provider, gen_provider, settings, doc_id = _create_test_env(
+    tmpdir, store, v_store, emb_provider, gen_provider, settings, _doc_id = _create_test_env(
         "Ancient Egyptian pyramids were constructed along the Nile river."
     )
     try:
@@ -469,7 +469,7 @@ def test_scenario_5_insufficient_evidence_triggers_reformulation_or_abstention()
 
 
 def test_scenario_6_valid_retrieval_not_discarded_on_step_limit():
-    tmpdir, store, v_store, emb_provider, gen_provider, settings, doc_id = _create_test_env(
+    tmpdir, store, v_store, emb_provider, gen_provider, settings, _doc_id = _create_test_env(
         "Section 3 of the Act authorizes provisional collection of customs duties immediately upon declaration."
     )
     try:
@@ -589,7 +589,7 @@ def test_scenario_10_embedding_dimension_mismatch_rejected_409():
 
 
 def test_scenario_11_indexing_and_querying_use_intended_collection():
-    tmpdir, store, v_store, emb_provider, gen_provider, settings, doc_id = _create_test_env(
+    tmpdir, store, v_store, emb_provider, gen_provider, settings, _doc_id = _create_test_env(
         "Custom collection content: Special maritime laws apply in territorial waters."
     )
     try:
@@ -617,7 +617,7 @@ def test_scenario_11_indexing_and_querying_use_intended_collection():
 
 
 def test_scenario_12_provider_failures_reported_as_provider_error():
-    tmpdir, store, v_store, emb_provider, gen_provider, settings, doc_id = _create_test_env(
+    tmpdir, store, v_store, emb_provider, _gen_provider, settings, _doc_id = _create_test_env(
         "Tax assessment rules are documented in chapter 4."
     )
     try:
@@ -680,7 +680,7 @@ def test_scenario_13_citations_reference_real_chunks_with_metadata():
 
 
 def test_scenario_14_execution_traces_reflect_actual_tool_calls():
-    tmpdir, store, v_store, emb_provider, gen_provider, settings, doc_id = _create_test_env(
+    tmpdir, store, v_store, emb_provider, gen_provider, settings, _doc_id = _create_test_env(
         "Section 1 defines short title and extent."
     )
     try:
@@ -710,7 +710,7 @@ def test_scenario_14_execution_traces_reflect_actual_tool_calls():
 
 
 def test_scenario_15_agent_loops_stop_at_configured_limits():
-    tmpdir, store, v_store, emb_provider, gen_provider, settings, doc_id = _create_test_env(
+    tmpdir, store, v_store, emb_provider, gen_provider, settings, _doc_id = _create_test_env(
         "General regulatory background text."
     )
     try:

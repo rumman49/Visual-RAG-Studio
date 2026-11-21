@@ -33,6 +33,7 @@ These labels may overlap or denote alternative design patterns rather than exclu
 6. Support local and cloud model adapters without silent provider substitution; never execute code supplied by imported workflows.
 7. Show absent or incomplete implementations as planned. Do not assert a library supports a pattern based on its general RAG positioning.
 8. Preserve original sources and provenance through retrieval and answer citation.
+9. Target user: a developer who wants a deployable tool. Support running a saved workflow by ID over the API, and exporting a validated workflow as a downloadable standalone Python project (zip) with per-stage modules matching the chosen architecture, containing no secrets.
 
 ## First milestone (M1): registry and working baseline
 

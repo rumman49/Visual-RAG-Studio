@@ -20,12 +20,12 @@ Evaluates and scores:
 
 from __future__ import annotations
 
-import math
-import time
 import tempfile
-from datetime import datetime, UTC
+import time
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+
 import pytest
 
 from app.config import Settings
@@ -33,28 +33,20 @@ from app.rag.chunking import TextChunk, chunk_document
 from app.rag.hybrid import (
     BM25Index,
     execute_hybrid_retrieval,
-    reciprocal_rank_fusion,
-    weighted_score_fusion,
 )
 from app.rag.multilingual import (
-    DEFAULT_ABSTENTION,
-    LOCALIZED_ABSTENTIONS,
-    detect_language,
-    get_multilingual_abstention,
     is_multilingual_abstention,
 )
-from app.rag.parser import ParsedDocument, TextSegment, parse_document
-from app.rag.pipeline import answer_query, assemble_context
+from app.rag.parser import parse_document
+from app.rag.pipeline import answer_query
 from app.rag.providers import (
     ExtractiveGeneratorProvider,
-    FastLocalEmbeddingProvider,
     GroqProvider,
     SentenceTransformersProvider,
 )
 from app.rag.ragspark_adapters import RagSparkReranker
 from app.rag.storage import DocumentRow, DocumentStore
 from app.rag.vector_store import MemoryVectorStore
-
 
 # ---------------------------------------------------------------------------
 # Comprehensive Multi-Domain Benchmark Corpus

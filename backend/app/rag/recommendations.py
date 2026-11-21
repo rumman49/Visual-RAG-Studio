@@ -78,7 +78,7 @@ def recommend_chunking(profile: DocumentProfile) -> ChunkingStrategyRecommendati
         ),
     ]
 
-    if file_type == "ma rkdown" and (headings or tables or code):
+    if file_type == "markdown" and (headings or tables or code):
         strategy = "structure_aware"
         rationale = "Observed Markdown structure is present; section boundaries and heading paths can be retained by the supported structure-aware splitter."
     elif text_length is not None and text_length >= 4000 and sentences:

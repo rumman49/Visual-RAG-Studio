@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from typing import Any
 
 # Supported languages in Visual RAG Studio
 SUPPORTED_LANGUAGES = {

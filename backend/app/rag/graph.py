@@ -14,7 +14,7 @@ from app.contracts import (
 )
 from app.rag.chunking import ChunkingError, validate_settings
 from app.rag.credentials import runtime_credentials
-from app.registry import NODE_TYPES_BY_ID, TEMPLATES_BY_ID
+from app.registry import NODE_TYPES_BY_ID
 from app.validation import validate_graph
 
 
