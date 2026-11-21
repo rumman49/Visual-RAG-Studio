@@ -116,6 +116,39 @@ def _validate_value(
     return issues
 
 
+def secret_config_issues(graph: WorkflowGraph) -> list[GraphValidationIssue]:
+    """Reject credentials embedded in vector-store node config (AD-9).
+
+    Secrets belong in backend env or runtime credentials, never in graph JSON.
+    """
+    issues: list[GraphValidationIssue] = []
+    for node in graph.nodes:
+        if node.node_type_id != "vector.index":
+            continue
+        backend = str(node.config.get("backend") or "chroma").lower()
+        if str(node.config.get("api_key") or "").strip():
+            issues.append(
+                _issue(
+                    "secret_in_graph",
+                    "Remove 'api_key' from this node; graphs must not contain credentials. "
+                    "Set the backend environment variable (e.g. PINECONE_API_KEY) or save the "
+                    f"key via /api/v1/providers/credentials/{backend}.",
+                    node_id=node.id,
+                )
+            )
+        url = str(node.config.get("url") or "")
+        if "@" in url.split("://", 1)[-1].split("/", 1)[0]:
+            issues.append(
+                _issue(
+                    "secret_in_graph",
+                    "Remove credentials embedded in 'url'; use a host-only URL and set the "
+                    "connection string (e.g. MONGODB_URI) in the backend environment.",
+                    node_id=node.id,
+                )
+            )
+    return issues
+
+
 def _config_issues(
     node_id: str, config: dict, definition: NodeDefinition
 ) -> list[GraphValidationIssue]:
@@ -172,6 +205,8 @@ def validate_graph(
             )
             continue
         nodes[node.id] = node
+
+    issues.extend(secret_config_issues(graph))
 
     definitions: dict[str, NodeDefinition] = {}
     for node_id, node in nodes.items():

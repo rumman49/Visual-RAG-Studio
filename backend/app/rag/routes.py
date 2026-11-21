@@ -84,6 +84,7 @@ from app.rag.vector_store import (
     VectorStoreError,
     get_vector_store_adapter,
 )
+from app.validation import secret_config_issues
 
 router = APIRouter(prefix="/api/v1")
 SUPPORTED_EXTENSIONS = {".txt", ".md", ".markdown", ".pdf"}
@@ -119,6 +120,16 @@ def _build_step_tracker(execution_id: str, graph_nodes: list[Any]):
                 execution_tracker.node(execution_id, actual_id, status)
 
     return on_step
+
+
+def _reject_graph_secrets(graph) -> None:
+    """Refuse graphs that embed credentials so they are never processed or stored (AD-9)."""
+    issues = secret_config_issues(graph)
+    if issues:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "secret_in_graph", "message": issues[0].message},
+        )
 
 
 def _is_local_origin(origin: str) -> bool:
@@ -843,6 +854,7 @@ def ingest_document(
             embed_model_name = settings.sentence_transformers_model or "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
 
+    _reject_graph_secrets(request.graph)
     vector_node = next(
         (node for node in request.graph.nodes if node.node_type_id == "vector.index"), None
     )
@@ -853,7 +865,7 @@ def ingest_document(
     if vector_node and vector_node.config:
         vector_backend = str(vector_node.config.get("backend") or "chroma")
         collection_name = str(vector_node.config.get("collection_name") or "visual_rag_studio_documents")
-        api_key = vector_node.config.get("api_key")
+        api_key = runtime_credentials.get_key(vector_backend)
         url = vector_node.config.get("url")
 
     from app.rag.vector_store import get_shared_memory_vector_store
@@ -970,6 +982,7 @@ def ingest_documents_batch(
             embed_model_name = settings.sentence_transformers_model or "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
 
+    _reject_graph_secrets(request.graph)
     vector_node = next(
         (node for node in request.graph.nodes if node.node_type_id == "vector.index"), None
     )
@@ -980,7 +993,7 @@ def ingest_documents_batch(
     if vector_node and vector_node.config:
         vector_backend = str(vector_node.config.get("backend") or "chroma")
         collection_name = str(vector_node.config.get("collection_name") or "visual_rag_studio_documents")
-        api_key = vector_node.config.get("api_key")
+        api_key = runtime_credentials.get_key(vector_backend)
         url = vector_node.config.get("url")
 
     from app.rag.vector_store import get_shared_memory_vector_store
@@ -1182,6 +1195,7 @@ def query_documents(
             embed_model_name = settings.sentence_transformers_model or "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
 
+    _reject_graph_secrets(request.graph)
     vector_node = next(
         (node for node in request.graph.nodes if node.node_type_id == "vector.index"), None
     )
@@ -1192,7 +1206,7 @@ def query_documents(
     if vector_node and vector_node.config:
         vector_backend = str(vector_node.config.get("backend") or "chroma")
         collection_name = str(vector_node.config.get("collection_name") or "visual_rag_studio_documents")
-        api_key = vector_node.config.get("api_key")
+        api_key = runtime_credentials.get_key(vector_backend)
         url = vector_node.config.get("url")
 
     from app.rag.vector_store import get_shared_memory_vector_store
@@ -1413,6 +1427,7 @@ def run_agent(
         if not embed_model_name:
             embed_model_name = settings.sentence_transformers_model or "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
+    _reject_graph_secrets(request.graph)
     vector_node = next(
         (node for node in request.graph.nodes if node.node_type_id == "vector.index"), None
     )
@@ -1423,7 +1438,7 @@ def run_agent(
     if vector_node and vector_node.config:
         vector_backend = str(vector_node.config.get("backend") or "chroma")
         collection_name = str(vector_node.config.get("collection_name") or "visual_rag_studio_documents")
-        api_key = vector_node.config.get("api_key")
+        api_key = runtime_credentials.get_key(vector_backend)
         url = vector_node.config.get("url")
 
     from app.rag.vector_store import get_shared_memory_vector_store
@@ -1625,6 +1640,7 @@ def save_workflow(
     request: WorkflowSaveRequest,
     store: DocumentStore = Depends(get_document_store),
 ):
+    _reject_graph_secrets(request.graph)
     workflow_id = request.id or f"wf_{uuid4().hex[:12]}"
     saved = store.save_workflow(
         workflow_id=workflow_id,

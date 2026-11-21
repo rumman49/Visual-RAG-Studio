@@ -429,7 +429,7 @@ def build_registry() -> RegistrySnapshot:
             ),
             "api_key": ConfigFieldDefinition(
                 value_type=ConfigValueType.STRING,
-                description="API key or token (not required for local Chroma).",
+                description="Not accepted in graphs. Set the backend environment variable (e.g. PINECONE_API_KEY) or save the key via /api/v1/providers/credentials/{backend}.",
                 default="",
             ),
         }
