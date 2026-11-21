@@ -11,4 +11,4 @@ Security requirements are architectural constraints, not implementation claims.
 - Track dependency versions, licenses and advisories; inspect provider adapters and serialized state formats before use.
 - Define authentication, tenant isolation, retention, encryption, deletion, and deployment threat model in Phase 1 after deployment target is chosen.
 
-For M1, the assumed operating mode is single-user and self-hosted. Development binding stays on loopback with authentication disabled and an explicit UI/API warning. Refuse or warn on non-loopback binding until an API-key/session boundary exists. This is not suitable for shared or public deployment; define a production threat model before expanding access.
+For M1, the assumed operating mode is single-user and self-hosted. Development binding stays on loopback with authentication disabled and an explicit UI/API warning. Non-loopback binding and `VRS_ENV=production` require `VRS_API_KEY`; `/api/v1` then demands an `X-API-Key` header (AD-12). This is not suitable for shared or public deployment; define a production threat model before expanding access.

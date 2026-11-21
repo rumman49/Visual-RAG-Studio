@@ -74,15 +74,15 @@ Dependencies point downward only. `registry`, `contracts` and `validation` impor
 - **Prevents:** runaway loops and unbounded tool use
 - **Rule:** The agent runs only tools in `allowed_tools`, within `max_steps`, `max_retrieval_iterations`, `token_budget` and `timeout_seconds`. Each step emits a structured trace entry (planning, retrieval, rerank, evaluate_evidence, reformulate_query, answer_generation, abstain).
 
-### AD-11 — Loopback-only until an auth boundary exists [ADOPTED, VIOLATED IN DEPLOY]
+### AD-11 — Loopback-only until an auth boundary exists [ADOPTED, PARTLY RESOLVED]
 - **Binds:** config, deployment
 - **Prevents:** exposing an unauthenticated API
-- **Rule:** `Settings` rejects a non-loopback `VRS_HOST`. Any hosted deployment must add an API-key or session boundary and a restricted CORS allow-list before it is considered supported. Current state: CORS allows any origin with credentials (`main.py`), and the Docker/Space entrypoints bind `0.0.0.0`. This is flagged as an open conflict.
+- **Rule:** `Settings` rejects a non-loopback `VRS_HOST` unless `VRS_API_KEY` is set, and rejects `VRS_ENV=production` without a key. Any hosted deployment also needs a restricted CORS allow-list before it is considered supported. Current state: the API-key boundary is implemented (AD-12, Story 1.2), so the Docker/Space entrypoints, which bind `0.0.0.0` and set `VRS_ENV=production`, need a `VRS_API_KEY` secret to start. CORS still allows any origin with credentials (`main.py`) until Story 1.3; that remains an open conflict.
 
-### AD-12 — API key flow for hosted use [ASSUMPTION]
-- **Binds:** frontend `api.ts`, `main.py` auth dependency, deployment
+### AD-12 — API key flow for hosted use [ADOPTED]
+- **Binds:** frontend `api.ts` and `AuthBoundary.tsx`, backend `auth.py` middleware, deployment
 - **Prevents:** shipping the API key in the static frontend bundle, or storing it in the browser
-- **Rule:** The backend checks an `X-API-Key` header against `VRS_API_KEY` on every `/api/v1` route, with `/api/health/*` open. The frontend never reads the key from a `VITE_` variable. The user enters it in the UI, it is held in session memory only (never `localStorage`), and `apiFetch` attaches it to requests. Loopback development with no `VRS_API_KEY` set runs without it.
+- **Rule:** The backend checks an `X-API-Key` header against `VRS_API_KEY` (constant-time comparison) on every `/api/v1` route through a middleware registered before CORS, with `/api/health/*` and CORS preflights open. Failures return 401 `{detail:{code,message}}` with code `api_key_required` or `api_key_invalid`. The frontend never reads the key from a `VITE_` variable. The user enters it in the UI when a 401 arrives, it is held in module memory only (never `localStorage`), and `apiFetch` attaches it to `/api/v1` requests. `/api/health/ready` reports `auth: required|none`. Loopback development with no `VRS_API_KEY` set runs without it and shows a notice.
 
 ## Consistency Conventions
 

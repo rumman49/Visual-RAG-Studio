@@ -65,7 +65,7 @@ Use the canvas toolbar to hide or restore the node palette and inspector. Canvas
 
 ## Configuration and security
 
-Copy `.env.example` to `.env`. Defaults bind to loopback and use local paths under `data/`. Non-loopback `VRS_HOST` values fail configuration validation because M1 has no authentication boundary. Do not expose this development server to a LAN or public network. `.env`, uploads, SQLite, Chroma files, model files, logs, caches, virtual environments and Node modules are ignored by Git.
+Copy `.env.example` to `.env`. Defaults bind to loopback and use local paths under `data/`. Non-loopback `VRS_HOST` values and `VRS_ENV=production` fail configuration validation unless `VRS_API_KEY` is set; clients then send it as `X-API-Key`. CORS is not yet restricted, so do not expose this server to a LAN or public network without reading `docs/security.md`. `.env`, uploads, SQLite, Chroma files, model files, logs, caches, virtual environments and Node modules are ignored by Git.
 
 Ollama URLs and embedding/generation model IDs are explicit configuration. Sentence Transformers downloads its selected model weights on first use unless `VRS_SENTENCE_TRANSFORMERS_LOCAL_FILES_ONLY=true`. No automatic provider failover, mock result, or in-memory vector-store fallback is allowed.
 
