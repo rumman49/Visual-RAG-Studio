@@ -244,6 +244,15 @@ class ProviderAdapterDefinition(ContractModel):
     dependencies: list[str] = Field(default_factory=list)
     runtime_implementation_id: str | None = None
     known_limitations: list[str] = Field(default_factory=list)
+    # "verified" only with live end-to-end evidence (Story 1.6); otherwise "unverified".
+    verification_status: str = "unverified"
+    evidence: list[CapabilityEvidence] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def verified_requires_dated_evidence(self) -> ProviderAdapterDefinition:
+        if self.verification_status == "verified" and not any(e.verified_at for e in self.evidence):
+            raise ValueError("verified providers require dated live evidence")
+        return self
 
 
 class ConfiguredProviderStatus(StrEnum):

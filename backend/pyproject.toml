@@ -27,7 +27,7 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+addopts = "-q -m 'not live_providers'"
 pythonpath = ["."]
 markers = [
   "live_providers: calls real external providers; excluded in CI unless opted in",

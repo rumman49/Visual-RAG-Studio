@@ -32,7 +32,7 @@ jobs:
         run: uv run pytest -m "not live_providers"
       - name: Pytest (live_providers opted in)
         if: ${{ inputs.live_providers }}
-        run: uv run pytest
+        run: uv run pytest -m "live_providers or not live_providers"
 
   frontend:
     name: Frontend (test + build)

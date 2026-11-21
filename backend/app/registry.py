@@ -5,6 +5,7 @@ from __future__ import annotations
 from app.contracts import (
     ArchitectureCatalogEntry,
     ArchitectureTemplateDefinition,
+    CapabilityEvidence,
     CatalogEntryKind,
     ChunkingStrategyDefinition,
     ConfigFieldDefinition,
@@ -1337,6 +1338,14 @@ def build_registry() -> RegistrySnapshot:
             capabilities=["chat-generation", "grounded-generation"],
             dependencies=["httpx"],
             runtime_implementation_id="rag.providers.GroqProvider.generate",
+            verification_status="verified",
+            evidence=[
+                CapabilityEvidence(
+                    verified_at="2026-11-21",
+                    test_references=["backend/tests/test_live_providers.py::test_live_provider_minimal_prompt_and_grounded_query[groq]"],
+                    notes="Live minimal prompt and one grounded RAG query with openai/gpt-oss-20b.",
+                )
+            ],
             known_limitations=["Requires a Groq API key and a model enabled for the account."],
         ),
         ProviderAdapterDefinition(
@@ -1356,6 +1365,14 @@ def build_registry() -> RegistrySnapshot:
             capabilities=["chat-generation"],
             dependencies=["httpx"],
             runtime_implementation_id="rag.providers.OllamaProvider.generate",
+            verification_status="verified",
+            evidence=[
+                CapabilityEvidence(
+                    verified_at="2026-11-21",
+                    test_references=["backend/tests/test_live_providers.py::test_live_provider_minimal_prompt_and_grounded_query[ollama]"],
+                    notes="Live minimal prompt and one grounded RAG query with gemma3:4b. Local Ollama server.",
+                )
+            ],
         ),
         ProviderAdapterDefinition(
             id="huggingface.chat",
@@ -1365,6 +1382,14 @@ def build_registry() -> RegistrySnapshot:
             capabilities=["chat-generation", "grounded-generation"],
             dependencies=["httpx"],
             runtime_implementation_id="rag.providers.HuggingFaceProvider.generate",
+            verification_status="unverified",
+            evidence=[
+                CapabilityEvidence(
+                    verified_at="2026-11-21",
+                    test_references=["backend/tests/test_live_providers.py::test_live_provider_minimal_prompt_and_grounded_query[huggingface]"],
+                    notes="Live check failed: Hugging Face reported no available account credit. Not verified; rerun after billing is resolved.",
+                )
+            ],
             known_limitations=[
                 "Requires a user-supplied HF_TOKEN and a model/provider combination enabled for Inference Providers."
             ],
