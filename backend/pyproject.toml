@@ -55,4 +55,4 @@ extend-immutable-calls = [
 entrypoint = "app.main:app"
 
 [tool.uv.sources]
-ragspark = { git = "https://github.com/Adeebkhann/ragspark.git" }
+ragspark = { git = "https://github.com/Adeebkhann/ragspark.git", rev = "d1c2fedfb980d406265faaa6650fc322ffd2693a" }

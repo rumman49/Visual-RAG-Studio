@@ -65,6 +65,13 @@ Use the canvas toolbar to hide or restore the node palette and inspector. Canvas
 
 ## Configuration and security
 
+### Deploying the backend to Hugging Face Spaces
+
+1. Create a **Gradio** Space and push the contents of `backend/` as its repository root (`README.md` front matter sets `app_file: space_app.py`). Alternatively build `backend/Dockerfile`, which runs the same entrypoint.
+2. Add Space secrets `VRS_API_KEY` (required), `VRS_CORS_ORIGINS` (your frontend URL, e.g. the Vercel domain) and optionally `GROQ_API_KEY`.
+3. Dependencies install from `backend/requirements.txt`; `ragspark` is pinned to one commit shared with `pyproject.toml` and `uv.lock`. When bumping it, update all three (`backend/tests/test_deploy_manifests.py` checks they agree).
+4. Verify with `curl https://<space>.hf.space/api/health/live` (expects `{"status":"alive"}`) and set `VITE_API_BASE_URL` on Vercel to the Space URL. The frontend prompts for the API key.
+
 Copy `.env.example` to `.env`. Defaults bind to loopback and use local paths under `data/`. Non-loopback `VRS_HOST` values and `VRS_ENV=production` fail configuration validation unless `VRS_API_KEY` is set; clients then send it as `X-API-Key`. Browser access is limited to `VRS_CORS_ORIGINS` (default: the local Vite origins on port 5173). Read `docs/security.md` before exposing this server beyond loopback. `.env`, uploads, SQLite, Chroma files, model files, logs, caches, virtual environments and Node modules are ignored by Git.
 
 Ollama URLs and embedding/generation model IDs are explicit configuration. Sentence Transformers downloads its selected model weights on first use unless `VRS_SENTENCE_TRANSFORMERS_LOCAL_FILES_ONLY=true`. No automatic provider failover, mock result, or in-memory vector-store fallback is allowed.

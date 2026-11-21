@@ -2868,7 +2868,7 @@ wheels = [
 [[package]]
 name = "ragspark"
 version = "0.3.0"
-source = { git = "https://github.com/Adeebkhann/ragspark.git#d1c2fedfb980d406265faaa6650fc322ffd2693a" }
+source = { git = "https://github.com/Adeebkhann/ragspark.git?rev=d1c2fedfb980d406265faaa6650fc322ffd2693a#d1c2fedfb980d406265faaa6650fc322ffd2693a" }
 dependencies = [
     { name = "pdfplumber" },
     { name = "pymupdf" },
@@ -3792,7 +3792,7 @@ requires-dist = [
     { name = "pymupdf", specifier = ">=1.26,<2" },
     { name = "python-dotenv", specifier = ">=1.1,<2" },
     { name = "python-multipart", specifier = ">=0.0.20,<1" },
-    { name = "ragspark", git = "https://github.com/Adeebkhann/ragspark.git" },
+    { name = "ragspark", git = "https://github.com/Adeebkhann/ragspark.git?rev=d1c2fedfb980d406265faaa6650fc322ffd2693a" },
     { name = "sentence-transformers", specifier = ">=5.1,<6" },
     { name = "sqlalchemy", specifier = ">=2.0,<3" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.38,<1" },
