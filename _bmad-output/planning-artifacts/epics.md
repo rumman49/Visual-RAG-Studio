@@ -148,6 +148,15 @@ So that a hosted instance isn't an open, unauthenticated API.
 **Then** the response is 401 with `{detail:{code,message}}`
 **And** `/api/health/live` stays open
 
+**Given** a request carrying `X-API-Key` that matches `VRS_API_KEY`
+**When** it reaches `/api/v1/*`
+**Then** it is accepted
+
+**Given** the frontend talks to an instance that requires a key
+**When** the user opens the app
+**Then** the UI asks for the key, holds it in session memory only (never `localStorage` or a `VITE_` variable), and sends it as `X-API-Key` on every request (AD-12)
+**And** a 401 shows a clear "key required or invalid" state with a retry
+
 **Given** loopback development with no `VRS_API_KEY`
 **When** the app starts
 **Then** it runs without a key and the UI shows the existing "no auth" warning

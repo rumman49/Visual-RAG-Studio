@@ -1,4 +1,5 @@
 # Architecture Spine — Visual RAG Studio
+
 Fast-path draft: items marked `[ASSUMPTION]` were inferred from code and need your confirmation.
 
 ## Design Paradigm
@@ -46,7 +47,7 @@ Dependencies point downward only. `registry`, `contracts` and `validation` impor
 ### AD-5 — Two stores, with defined ownership [ADOPTED]
 - **Binds:** storage, vector_store, routes
 - **Prevents:** chunk text or provenance being written to the wrong place
-- **Rule:** `DocumentStore` (SQLite via SQLAlchemy, plus `uploads/`) owns document identity, ingestion state, profile, selection, chunk index metadata and saved workflows. The vector adapter (Chroma persistent, or in-memory) owns vectors, chunk text and provenance metadata. Chunk text is not duplicated into SQLite. Queries and answers are not persisted, and execution progress lives in the in-process `ExecutionTracker` (bounded to 64 runs).
+- **Rule:** `DocumentStore` (SQLite via SQLAlchemy, plus `uploads/`) owns document identity, ingestion state, profile, selection, chunk index metadata, saved workflows and revisions, and run records. The vector adapter (Chroma persistent, or in-memory) owns vectors, chunk text and provenance metadata. Chunk text is not duplicated into SQLite. Run records (question, answer, citations, per-node trace, provider and model) are persisted only for comparison and history (Epic 3), contain no secrets, and are user-deletable. Live execution progress stays in the in-process `ExecutionTracker` (bounded to 64 runs). Amended from "queries and answers are not persisted" when run history was added.
 
 ### AD-6 — Embedding model and dimension are pinned per collection [ADOPTED]
 - **Binds:** vector_store, ingestion, planner
@@ -77,6 +78,11 @@ Dependencies point downward only. `registry`, `contracts` and `validation` impor
 - **Binds:** config, deployment
 - **Prevents:** exposing an unauthenticated API
 - **Rule:** `Settings` rejects a non-loopback `VRS_HOST`. Any hosted deployment must add an API-key or session boundary and a restricted CORS allow-list before it is considered supported. Current state: CORS allows any origin with credentials (`main.py`), and the Docker/Space entrypoints bind `0.0.0.0`. This is flagged as an open conflict.
+
+### AD-12 — API key flow for hosted use [ASSUMPTION]
+- **Binds:** frontend `api.ts`, `main.py` auth dependency, deployment
+- **Prevents:** shipping the API key in the static frontend bundle, or storing it in the browser
+- **Rule:** The backend checks an `X-API-Key` header against `VRS_API_KEY` on every `/api/v1` route, with `/api/health/*` open. The frontend never reads the key from a `VITE_` variable. The user enters it in the UI, it is held in session memory only (never `localStorage`), and `apiFetch` attaches it to requests. Loopback development with no `VRS_API_KEY` set runs without it.
 
 ## Consistency Conventions
 
@@ -133,13 +139,13 @@ docs/               planning and story reports
 | Retrieval (dense, BM25, RRF, rerank) | `rag/hybrid.py`, `vector_store.py` | AD-4, AD-6 |
 | Multilingual | `rag/multilingual.py` | AD-7 |
 | Agent | `rag/agent.py` | AD-4, AD-10 |
-| Providers and secrets | `rag/providers.py`, `credentials.py` | AD-8, AD-9 |
+| Providers and secrets | `rag/providers.py`, `credentials.py` | AD-8, AD-9, AD-12 |
 | Deployment | `vercel.json`, `backend/Dockerfile`, `space_app.py` | AD-11 |
 
 ## Deferred
 
 - Authentication, tenancy and a hosted threat model. Revisit before any shared deployment (see AD-11).
 - Saved-workflow revisions, branch/compare and template publishing. `/workflows` currently stores one graph per record.
-- Run history and traces persistence. Add when run comparison is built.
+- Run-record retention policy (age or count limits). Add if storage growth becomes a problem; deletion controls exist from Story 3.2.
 - Generic graph executor / LangGraph. Add only when stateful branching beyond the fixed runners is required.
 - RagSpark integration status. `[ASSUMPTION]` it is partly integrated (`ragspark_adapters.py`, reranker), which conflicts with the older Story 7 report.

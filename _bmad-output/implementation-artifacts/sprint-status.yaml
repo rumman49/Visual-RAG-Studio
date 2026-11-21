@@ -1,0 +1,90 @@
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created, ready for development
+#   - in-progress: Developer actively working on implementation
+#   - review: Implementation complete, ready for review
+#   - done: Story completed
+
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+
+# Action Item Status:
+#   - open: Committed during a retrospective, not yet addressed
+#   - in-progress: Actively being worked on
+#   - done: Completed
+
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when its first story starts (via build's sprint sync)
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates the next story after the previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+# - Retrospective appends its action items to action_items; the status view surfaces open ones
+generated: 11-21-2026 12:00
+last_updated: 11-21-2026 12:00
+project: Visual RAG Studio V-4
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+development_status:
+  epic-1: backlog
+  1-1-ci-pipeline: backlog
+  1-2-api-key-required-for-non-loopback-access: backlog
+  1-3-cors-limited-to-configured-origins: backlog
+  1-4-secrets-kept-out-of-workflow-graphs: backlog
+  1-5-reproducible-hosted-image: backlog
+  1-6-verified-live-providers: backlog
+  epic-1-retrospective: optional
+
+  epic-2: backlog
+  2-1-workflow-revisions: backlog
+  2-2-save-and-reopen-in-the-editor: backlog
+  2-3-export-a-graph-as-a-validated-file: backlog
+  2-4-import-a-graph-with-strict-validation: backlog
+  2-5-publish-a-workflow-as-a-reusable-template: backlog
+  2-6-run-a-saved-workflow-by-id: backlog
+  2-7a-download-a-traditional-rag-project-as-a-python-zip: backlog
+  2-7b-hybrid-reranking-and-multilingual-code-in-the-zip: backlog
+  2-7c-agentic-rag-code-in-the-zip: backlog
+  epic-2-retrospective: optional
+
+  epic-3: backlog
+  3-1-per-node-trace-in-query-responses: backlog
+  3-2-persist-run-history: backlog
+  3-3-fork-a-workflow-branch: backlog
+  3-4-replace-a-node-with-a-compatible-one: backlog
+  3-5-run-a-comparison-on-the-same-input: backlog
+  3-6-side-by-side-comparison-view: backlog
+  epic-3-retrospective: optional
+
+  epic-4: backlog
+  4-1-evidence-recorded-in-the-registry: backlog
+  4-2-browse-and-filter-the-catalog: backlog
+  4-3-architecture-detail-and-topology-preview: backlog
+  4-4-start-a-workflow-from-the-picker: backlog
+  4-5-recommend-an-architecture-for-my-documents: backlog
+  epic-4-retrospective: optional
+
+  epic-5: backlog
+  5-1-run-view-with-per-node-status: backlog
+  5-2-citations-with-source-provenance: backlog
+  5-3-agent-step-trace-view: backlog
+  5-4-redaction-and-external-processing-indicators: backlog
+  5-5-untrusted-content-kept-visibly-separate: backlog
+  epic-5-retrospective: optional
+
+  epic-6: backlog
+  6-1-one-query-dispatch-path: backlog
+  6-2-guards-for-the-security-baseline: backlog
+  6-3-docs-match-the-code: backlog
+  6-4-reconcile-ragspark-status: backlog
+  6-5-consolidate-epic-history: backlog
+  epic-6-retrospective: optional
