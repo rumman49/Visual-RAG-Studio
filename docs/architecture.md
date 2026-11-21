@@ -1,41 +1,145 @@
-# Visual RAG Studio — Initial Architecture
+# Architecture Spine — Visual RAG Studio
+Fast-path draft: items marked `[ASSUMPTION]` were inferred from code and need your confirmation.
 
-**Status:** Phase 0 recommendation, 2026-10-25. No runtime has been implemented.
+## Design Paradigm
 
-## Context and boundary
+Registry-driven modular monolith. The backend registry (`backend/app/registry.py`) is the single source of truth for catalog, node types, ports and statuses. The frontend renders it and never copies it. Workflows are declarative graphs (`contracts.py`) that `validation.py` checks without executing. Execution is done by fixed runners in `backend/app/rag/`, which are not a generic DAG engine. Providers sit behind adapters.
 
-Use a React/TypeScript/Vite client with React Flow for the product's primary editor. A Python/FastAPI service owns catalog and capability APIs, graph validation, persistence, provider references, and bounded execution. Keep UI graph representation separate from runtime adapter interfaces. The initial runtime can execute a deterministic DAG/topological path; introduce LangGraph only for semantics that need state, branching, loops, streaming, checkpoints, or approvals. M1 defaults: SQLite via SQLAlchemy for local workflow/document metadata; Chroma persistent local storage via a narrow vector-store adapter; Ollama as the configurable local embedding and generation provider. These are replaceable defaults, not hard-coded graph semantics. Development is local-first with separate frontend/backend processes and a same-origin development proxy. Initial deployment target is a single-user self-hosted instance; no public multi-tenant deployment in M1. Authentication is disabled only for loopback development, with an explicit warning; add an API-key/session boundary before binding to non-loopback interfaces. Confirm security/deployment choices before any shared or public deployment.
-
-Frameworks are optional implementation adapters rather than the application contract. No arbitrary code nodes, imported code execution, hidden provider failover, automatic model download, or implicit mocks. Catalog and executable graph contracts are separate. Traditional RAG is the complete transparent loader→chunk→embed/index→retrieve→context→generate path; Naive RAG is a simpler direct top-k retrieve→generate preset with fewer query/context transformations. Both may use shared adapters, while only Traditional RAG is in the M1 runnable scope.
-
-## Proposed structure
-
-```text
-AGENTS.md
-README.md
-docs/{PRD,architecture,UX-specification,capability-registry,library-usage,security,testing-strategy,api-contracts}.md
-docs/epics/
-frontend/   # React/Vite editor, gallery, inspector, execution views
-backend/    # FastAPI, schemas, registry, validation, execution, adapters, persistence, security
-tests/      # contracts, backend integration, frontend flows, fixtures
-scripts/
-deployment/
+```mermaid
+graph TD
+  FE[frontend: React Flow editor] -->|HTTP /api/v1| R[rag/routes.py + main.py]
+  R --> V[validation.py + rag/graph.py]
+  V --> REG[registry.py + contracts.py]
+  R --> P[rag/pipeline.py, hybrid.py, multilingual.py, agent.py, planner.py]
+  P --> AD[rag/providers.py + ragspark_adapters.py]
+  P --> VS[rag/vector_store.py]
+  R --> ST[rag/storage.py]
+  AD --> EXT[(Ollama / Groq / HF / OpenAI / Gemini / Anthropic)]
+  VS --> CH[(Chroma / memory)]
+  ST --> DB[(SQLite + uploads/)]
 ```
 
-Create only the documents needed for Phase 0 now. The directory was empty and is not a Git repository; this structure is proposed, not scaffolded.
+Dependencies point downward only. `registry`, `contracts` and `validation` import nothing from `rag/`.
 
-## Key data flows
+## Invariants & Rules
 
-1. Gallery: UI requests catalog → registry returns metadata/status/provider evidence → UI filters/details/preview; planned status never yields an executable graph.
-2. Instantiate/edit: selected template graph (or empty Custom graph) → client edits versioned declarative graph → validation checks schema, typed ports, semantics and configs → save creates a workflow revision.
-3. Ingest: validated source metadata/file → constrained parser → chunk records with source/page/offset provenance → explicit embedding adapter → index, recording model/dimension/index config.
-4. Query: query input → optional query processors → retrievers → compatible fusion/rerank/context nodes → explicitly configured generator → answer and citations mapped to retrieved provenance; unmet evidence threshold yields abstention.
-5. Execution: API validates graph and budgets → deterministic executor or selected orchestration adapter → node events/results/errors → redacted trace; external secrets referenced through secure provider configuration, never serialized into graph exports.
+### AD-1 — Registry is the single catalog and contract authority [ADOPTED]
+- **Binds:** registry, validation, frontend, docs
+- **Prevents:** a second copy of node types or statuses drifting from the backend
+- **Rule:** Add node types, ports and architecture entries only in `registry.py`. The frontend reads `/api/v1/registry` and holds no catalog copy. Graph serialization carries only node ID, `node_type_id`, config and provider reference, with no canvas coordinates.
 
-## Registry-driven runtime contract
+### AD-2 — Truthful status gates execution [ADOPTED]
+- **Binds:** registry, validation, routes, UI
+- **Prevents:** planned or unverified capabilities running or being advertised as runnable
+- **Rule:** `planned < experimental < implemented < tested`. Validation reports `valid` separately from `executable`, and a planned node cannot be executable. A status is promoted only with recorded evidence in the story report.
 
-Nodes declare stable type/version, config schema, typed ports, dependency/provider requirements, execution semantics, modality/language claims with evidence, validation rules, and limitations. Adapters implement the contract; graph validation does not infer support from names. Workflow documents are declarative and strict; allow-listed node types only. Template executable state requires real adapter bindings, compatible graph, configuration, and recorded end-to-end evidence.
+### AD-3 — Validate before execute, and validation never runs anything [ADOPTED]
+- **Binds:** validation, query/ingest routes
+- **Prevents:** running unchecked graphs or imported code
+- **Rule:** `/workflows/validate` and runners call the deterministic validators and never invoke a model. Only allow-listed node types are accepted. No code, shell, SQL or package install comes from a graph. Execution endpoints (`/query`, `/agent/run`) must re-validate the graph server-side.
 
-## Main risks and decisions
+### AD-4 — Fixed runners, not a generic executor [ADOPTED]
+- **Binds:** pipeline, agent, hybrid, multilingual
+- **Prevents:** two diverging execution engines
+- **Rule:** Architecture behaviour lives in explicit runner modules. `/query` dispatches to the agent runner only when `agent.orchestrate` is in the graph, otherwise to the Traditional/Hybrid pipeline. A new architecture family extends the registry plus a runner, and does not fork `/query`. `[ASSUMPTION]` Hybrid, Reranking and Multilingual are configurations of shared nodes.
 
-Graph version evolution and adapter compatibility; provider/license sprawl; Python dependency conflicts; private data and prompt injection; provenance preservation; costs and resource bounds; agent loops; time-sensitive catalog claims. M1 defaults above close the local database/vector/provider/development choices sufficiently to begin implementation. Exact model names, supported document formats, deployment authentication beyond loopback, and production hosting remain deferred. Traditional-vs-Naive wording is defined above. RagSpark is identified but remains under evaluation pending source/metadata/runtime inspection.
+### AD-5 — Two stores, with defined ownership [ADOPTED]
+- **Binds:** storage, vector_store, routes
+- **Prevents:** chunk text or provenance being written to the wrong place
+- **Rule:** `DocumentStore` (SQLite via SQLAlchemy, plus `uploads/`) owns document identity, ingestion state, profile, selection, chunk index metadata and saved workflows. The vector adapter (Chroma persistent, or in-memory) owns vectors, chunk text and provenance metadata. Chunk text is not duplicated into SQLite. Queries and answers are not persisted, and execution progress lives in the in-process `ExecutionTracker` (bounded to 64 runs).
+
+### AD-6 — Embedding model and dimension are pinned per collection [ADOPTED]
+- **Binds:** vector_store, ingestion, planner
+- **Prevents:** mixed-dimension corruption and silently wrong retrieval
+- **Rule:** The vector adapter records `embedding_model` and `embedding_dimension` and refuses a mismatched write or query. Reindexing upserts the new vectors first, then removes stale ones. Chunk IDs are deterministic, so retries are idempotent.
+
+### AD-7 — Provenance and abstention are non-negotiable [ADOPTED]
+- **Binds:** pipeline, agent, multilingual
+- **Prevents:** invented citations or ungrounded answers
+- **Rule:** Every answer cites retrieved chunk IDs and the pipeline validates citation IDs. Insufficient evidence yields a deterministic, localized abstention. Context assembly keeps whole chunks within `max_context_chars`.
+
+### AD-8 — Explicit providers, no silent fallback [ADOPTED]
+- **Binds:** providers, routes, config
+- **Prevents:** hidden provider switching, silent mocks, surprise external data egress
+- **Rule:** Each request names its generation provider and model. Provider failures surface as typed errors. Hosted providers receive document excerpts only after explicit per-query authorization, and the provider must pass the "Test provider" call first. `[ASSUMPTION]` `extractive` and `fast_local` are explicit options and not fallbacks.
+
+### AD-9 — Secrets never reach graphs, traces, storage or responses [ADOPTED]
+- **Binds:** config, credentials, routes, frontend
+- **Prevents:** credential leakage
+- **Rule:** Keys come from env as `SecretStr` or from `RuntimeCredentials` (process-local memory). Routes expose configured/not-configured only. The frontend must not persist keys. `[ASSUMPTION]` Vector-node config fields like `api_key`/`url` (`routes.py` /query) are an exception that must be reviewed, because they put a secret in graph JSON.
+
+### AD-10 — Bounded agent behaviour [ADOPTED]
+- **Binds:** agent.py, planner.py
+- **Prevents:** runaway loops and unbounded tool use
+- **Rule:** The agent runs only tools in `allowed_tools`, within `max_steps`, `max_retrieval_iterations`, `token_budget` and `timeout_seconds`. Each step emits a structured trace entry (planning, retrieval, rerank, evaluate_evidence, reformulate_query, answer_generation, abstain).
+
+### AD-11 — Loopback-only until an auth boundary exists [ADOPTED, VIOLATED IN DEPLOY]
+- **Binds:** config, deployment
+- **Prevents:** exposing an unauthenticated API
+- **Rule:** `Settings` rejects a non-loopback `VRS_HOST`. Any hosted deployment must add an API-key or session boundary and a restricted CORS allow-list before it is considered supported. Current state: CORS allows any origin with credentials (`main.py`), and the Docker/Space entrypoints bind `0.0.0.0`. This is flagged as an open conflict.
+
+## Consistency Conventions
+
+| Concern | Convention |
+| --- | --- |
+| Naming | Node types `domain.action` (e.g. `retrieval.dense`, `merge.fuse`, `agent.orchestrate`); architecture IDs kebab-case (`hybrid-rag`); env vars `VRS_*` |
+| API | `/api/v1/...` for resources, `/api/health/{live,ready}` for health; errors `{detail:{code,message}}` via `PipelineError` |
+| Data | Pydantic v2 models at the API boundary; IDs are deterministic for chunks, opaque for documents and workflows |
+| State | Mutate stores only through `DocumentStore` and the vector adapter, never directly in routes; dependency providers come from `rag/dependencies.py` |
+| Testing | Backend tests in `backend/tests` (pytest, `uv run`); frontend `vitest`; provider-gated tests are opt-in and reported separately; no mocks claimed as live evidence |
+
+## Stack
+
+| Name | Version |
+| --- | --- |
+| Python | >=3.11,<3.15 (Docker image: 3.12) |
+| FastAPI / uvicorn | >=0.120 / >=0.38 |
+| Pydantic / pydantic-settings | >=2.12 / >=2.11 |
+| SQLAlchemy (SQLite) | >=2.0 |
+| ChromaDB | >=1.0,<2 |
+| sentence-transformers | >=5.1 (default `paraphrase-multilingual-MiniLM-L12-v2`, 384d) |
+| PyMuPDF | >=1.26 |
+| ragspark | git, unpinned in pyproject; pinned to a commit in the Dockerfile |
+| React / Vite / TypeScript | ^19.1 / ^7.1 / ~5.9 |
+| @xyflow/react | ^12.8 |
+| vitest | ^3.2 |
+
+Versions come from manifests and were not web-verified.
+
+## Structural Seed
+
+```mermaid
+graph LR
+  U[Browser: Vercel static build] -->|VITE_API_BASE_URL| API[FastAPI on HF Space :7860]
+  Dev[Local dev: Vite :5173] -->|/api proxy| Local[FastAPI :8001, loopback]
+  API --> Data[(data/: SQLite, Chroma, uploads)]
+  Local --> Data
+```
+
+```text
+backend/app/        registry, contracts, validation, config, main
+backend/app/rag/    routes, pipeline, graph, storage, vector_store, providers, hybrid, multilingual, agent, planner
+backend/tests/      pytest suites
+frontend/src/       VisualBuilder.tsx (editor), api.ts (base-URL client)
+docs/               planning and story reports
+```
+
+## Capability → Architecture Map
+
+| Area | Lives in | Governed by |
+|---|---|---|
+| Catalog / registry / validation | `registry.py`, `validation.py` | AD-1, AD-2, AD-3 |
+| Ingestion and chunking | `rag/pipeline.py`, `chunking.py`, `planner.py` | AD-5, AD-6 |
+| Retrieval (dense, BM25, RRF, rerank) | `rag/hybrid.py`, `vector_store.py` | AD-4, AD-6 |
+| Multilingual | `rag/multilingual.py` | AD-7 |
+| Agent | `rag/agent.py` | AD-4, AD-10 |
+| Providers and secrets | `rag/providers.py`, `credentials.py` | AD-8, AD-9 |
+| Deployment | `vercel.json`, `backend/Dockerfile`, `space_app.py` | AD-11 |
+
+## Deferred
+
+- Authentication, tenancy and a hosted threat model. Revisit before any shared deployment (see AD-11).
+- Saved-workflow revisions, branch/compare and template publishing. `/workflows` currently stores one graph per record.
+- Run history and traces persistence. Add when run comparison is built.
+- Generic graph executor / LangGraph. Add only when stateful branching beyond the fixed runners is required.
+- RagSpark integration status. `[ASSUMPTION]` it is partly integrated (`ragspark_adapters.py`, reranker), which conflicts with the older Story 7 report.
