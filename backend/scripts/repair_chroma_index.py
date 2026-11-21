@@ -135,7 +135,7 @@ def main() -> int:
             f"Original collection retained: {source_path}"
         )
         return 0
-    except Exception as exc:  # noqa: BLE001 - repair must report any failure before a swap.
+    except Exception as exc:
         print(f"Recovery stopped safely: {type(exc).__name__}: {exc}")
         print("The active Chroma directory was not replaced.")
         return 1

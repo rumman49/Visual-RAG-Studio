@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+
 from starlette.testclient import TestClient
 
 from app.config import Settings, get_settings
@@ -36,7 +37,7 @@ from app.rag.parser import parse_document
 from app.rag.pipeline import ABSTENTION, answer_query, index_document
 from app.rag.providers import ExtractiveGeneratorProvider, FastLocalEmbeddingProvider, ProviderError
 from app.rag.storage import DocumentStore
-from app.rag.vector_store import ChromaVectorStore, MemoryVectorStore, get_vector_store_adapter
+from app.rag.vector_store import ChromaVectorStore, MemoryVectorStore
 from app.registry import TEMPLATES_BY_ID
 
 
@@ -300,7 +301,7 @@ def test_vertical_slice_10_and_11_api_and_workflow_persistence(tmp_path: Path):
     wf_id = save_res.json()["id"]
 
     # Reopen workflow
-    load_res = client.post(f"/api/v1/workflows") # list or get
+    client.post("/api/v1/workflows") # list or get
     get_res = client.get(f"/api/v1/workflows/{wf_id}")
     assert get_res.status_code == 200
     reopened = get_res.json()

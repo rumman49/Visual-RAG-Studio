@@ -1,10 +1,11 @@
 """Real Chroma integration tests verifying retrieval correctness and document scope isolation."""
 
 import pytest
-from app.rag.vector_store import ChromaVectorStore
-from app.rag.hybrid import execute_hybrid_retrieval
-from app.rag.agent import AgentOrchestrator, AgentExecutionMode, AgentApprovalPolicy
+
 from app.config import get_settings
+from app.rag.agent import AgentApprovalPolicy, AgentExecutionMode, AgentOrchestrator
+from app.rag.hybrid import execute_hybrid_retrieval
+from app.rag.vector_store import ChromaVectorStore
 
 
 def dummy_embed(text: str) -> list[float]:
@@ -31,7 +32,7 @@ class MockGenerationProvider:
     provider_name = "extractive"
 
     def generate(self, model: str | None, system_prompt: str, prompt: str, **kwargs) -> str:
-        return f"Grounded response based on retrieved evidence [1]."
+        return "Grounded response based on retrieved evidence [1]."
 
 
 @pytest.fixture

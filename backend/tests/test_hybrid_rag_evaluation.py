@@ -18,20 +18,16 @@ Measures and asserts:
 from __future__ import annotations
 
 import math
-from typing import Any
-import pytest
+
 from starlette.testclient import TestClient
 
 from app.config import Settings
 from app.contracts import (
     GraphConnection,
-    ImplementationStatus,
     NodeInstance,
     WorkflowGraph,
 )
 from app.main import app
-from app.rag.contracts import QueryRequest
-from app.rag.dependencies import get_document_store, get_vector_store
 from app.rag.graph import validate_traditional_graph
 from app.rag.hybrid import (
     BM25Index,
@@ -39,11 +35,8 @@ from app.rag.hybrid import (
     reciprocal_rank_fusion,
     weighted_score_fusion,
 )
-from app.rag.pipeline import answer_query
-from app.rag.storage import DocumentStore
 from app.rag.vector_store import MemoryVectorStore
-from app.registry import REGISTRY, TEMPLATES_BY_ID
-
+from app.registry import TEMPLATES_BY_ID
 
 # ---------------------------------------------------------------------------
 # Benchmark Corpus and Fixed Evaluation Dataset
@@ -342,7 +335,7 @@ def test_hybrid_benchmark_evaluation():
         def embed(self, model: str, texts: list[str]):
             return [pseudo_embed(t) for t in texts], 32
 
-    fake_embedder = FakeEmbedder()
+    FakeEmbedder()
 
     # Seed vector store with benchmark corpus
     from app.rag.chunking import TextChunk
@@ -420,12 +413,12 @@ def test_hybrid_benchmark_evaluation():
         hybrid_r3.append(compute_recall_at_k(hybrid_ids, target, 3))
         hybrid_mrr.append(compute_reciprocal_rank(hybrid_ids, target))
 
-    avg_dense_r3 = sum(dense_r3) / len(dense_r3)
-    avg_bm25_r3 = sum(bm25_r3) / len(bm25_r3)
+    sum(dense_r3) / len(dense_r3)
+    sum(bm25_r3) / len(bm25_r3)
     avg_hybrid_r3 = sum(hybrid_r3) / len(hybrid_r3)
 
     avg_dense_mrr = sum(dense_mrr) / len(dense_mrr)
-    avg_bm25_mrr = sum(bm25_mrr) / len(bm25_mrr)
+    sum(bm25_mrr) / len(bm25_mrr)
     avg_hybrid_mrr = sum(hybrid_mrr) / len(hybrid_mrr)
 
     # Hybrid RRF combines the precision of BM25 on entities with dense semantic coverage

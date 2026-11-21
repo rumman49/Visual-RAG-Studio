@@ -6,7 +6,7 @@ import hashlib
 import re
 import time
 from collections.abc import Iterable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from app.rag.parser import ParsedDocument, TextSegment

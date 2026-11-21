@@ -1271,9 +1271,14 @@ def test_batch_document_upload_and_ingestion(tmp_path):
         app.dependency_overrides.clear()
 
 
-def test_dynamic_models_routes_and_ollama_thinking_suppression():
-    from app.rag.providers import OllamaProvider
+def test_dynamic_models_routes_and_ollama_thinking_suppression(monkeypatch):
     import httpx
+
+    from app.rag import routes
+    from app.rag.providers import OllamaProvider
+
+    # No provider key means the route returns its static list, regardless of a local .env.
+    monkeypatch.setattr(routes, "_key_for_provider", lambda provider, settings: None)
 
     # Test dynamic models fallback
     client = TestClient(app)

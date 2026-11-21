@@ -9,7 +9,6 @@ Proves that:
 from __future__ import annotations
 
 import sys
-import time
 from pathlib import Path
 
 backend_root = Path(__file__).resolve().parent.parent
@@ -32,7 +31,6 @@ def run_smoke_test() -> bool:
         import ragspark.prompt_eng as r_prompt
         import ragspark.rag as r_rag
         import ragspark.reranker as r_reranker
-        import ragspark.ui as r_ui
         import ragspark.vectordb as r_vectordb
 
         print(f"  [OK] ragspark v{ragspark.__version__} imported successfully.")
@@ -160,8 +158,8 @@ def run_smoke_test() -> bool:
     # 10. Studio Registry Verification
     print("\n[10/10] Verifying Visual RAG Studio Registry Exposure...")
     try:
-        from app.registry import REGISTRY, CHUNKING_STRATEGIES, NODE_TYPES_BY_ID
         from app.rag.ragspark_adapters import RAGSPARK_CHUNKING_STRATEGIES
+        from app.registry import CHUNKING_STRATEGIES, NODE_TYPES_BY_ID, REGISTRY
 
         ragspark_nodes = [nid for nid in NODE_TYPES_BY_ID if "ragspark" in nid]
         print(f"  * Registered RagSpark node types: {len(ragspark_nodes)} ({', '.join(ragspark_nodes)})")

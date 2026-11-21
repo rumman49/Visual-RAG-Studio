@@ -33,34 +33,22 @@ from fastapi.testclient import TestClient
 
 from app.config import Settings
 from app.contracts import (
-    ConfiguredProviderInstance,
     ConfiguredProviderStatus,
-    ConnectionKind,
-    ExecutionMode,
-    GraphConnection,
-    IssueSeverity,
-    NodeInstance,
     WorkflowGraph,
     WorkflowValidationRequest,
 )
 from app.main import app
-from app.rag.agent import AgentApprovalPolicy, AgentExecutionMode, AgentOrchestrator
 from app.rag.chunking import (
     ChunkingError,
     MultiStrategyChunkPlan,
-    ParsedDocument,
-    TextChunk,
     chunk_document_multi,
 )
-from app.rag.contracts import AgentRunRequest
 from app.rag.dependencies import get_document_store, get_settings, get_vector_store
 from app.rag.graph import configured_provider_instances, validate_traditional_graph
 from app.rag.parser import parse_document
 from app.rag.storage import DocumentStore
 from app.rag.vector_store import ChromaVectorStore
-from app.registry import NODE_TYPES_BY_ID, TEMPLATES_BY_ID
-from app.validation import validate_graph
-
+from app.registry import TEMPLATES_BY_ID
 
 # ==============================================================================
 # 1. PROVIDER READINESS AUDIT
@@ -183,7 +171,7 @@ def test_distinguish_assignment_configuration_and_readiness():
 
 def test_validation_state_draft_incomplete_connections():
     """Incomplete connections result in Draft state (valid=False, executable=False)."""
-    settings = Settings()
+    Settings()
     incomplete_graph = WorkflowGraph(
         schema_version=1,
         id="draft-1",

@@ -14,7 +14,7 @@ Covers:
 from __future__ import annotations
 
 import tempfile
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -26,7 +26,6 @@ from app.rag.graph import validate_traditional_graph
 from app.rag.multilingual import (
     DEFAULT_ABSTENTION,
     LOCALIZED_ABSTENTIONS,
-    SUPPORTED_LANGUAGES,
     build_multilingual_instructions,
     detect_language,
     get_multilingual_abstention,
@@ -36,8 +35,7 @@ from app.rag.pipeline import answer_query, assemble_context
 from app.rag.providers import SentenceTransformersProvider
 from app.rag.storage import DocumentRow, DocumentStore
 from app.rag.vector_store import MemoryVectorStore
-from app.registry import REGISTRY, TEMPLATES_BY_ID, NodeInstance, WorkflowGraph, GraphConnection
-
+from app.registry import TEMPLATES_BY_ID, GraphConnection, NodeInstance, WorkflowGraph
 
 # ---------------------------------------------------------------------------
 # 1. Language Detection Tests
@@ -108,7 +106,7 @@ def test_build_multilingual_instructions():
     assert "Hinglish" in hinglish_instr
     assert LOCALIZED_ABSTENTIONS["hinglish"] in hinglish_instr
 
-    auto_instr, auto_lang = build_multilingual_instructions("auto", "कृत्रिम न्यूरल नेटवर्क क्या है?")
+    _auto_instr, auto_lang = build_multilingual_instructions("auto", "कृत्रिम न्यूरल नेटवर्क क्या है?")
     assert auto_lang == "hi"
 
 
@@ -412,7 +410,7 @@ def test_multilingual_quantitative_retrieval_and_mrr(multilingual_indexed_store)
     recall_5 = hits_at_5 / total_queries
     mrr = sum(reciprocal_ranks) / total_queries
 
-    print(f"\n[Multilingual Retrieval Benchmark Results]")
+    print("\n[Multilingual Retrieval Benchmark Results]")
     print(f"Total Queries Evaluated: {total_queries}")
     print(f"Recall@1: {recall_1:.4f} ({hits_at_1}/{total_queries})")
     print(f"Recall@3: {recall_3:.4f} ({hits_at_3}/{total_queries})")

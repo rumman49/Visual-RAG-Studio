@@ -375,7 +375,7 @@ def execute_hybrid_retrieval(
     # Second attempt: Vector store retrieval for selected documents
     if not corpus_docs and eligible_set:
         try:
-            where = {"document_id": list(eligible_set)[0]} if len(eligible_set) == 1 else {"document_id": {"$in": list(eligible_set)}}
+            where = {"document_id": next(iter(eligible_set))} if len(eligible_set) == 1 else {"document_id": {"$in": list(eligible_set)}}
             if hasattr(vector_store, "collection"):
                 coll_data = vector_store.collection.get(where=where, include=["documents", "metadatas"])
                 ids = coll_data.get("ids") or []
@@ -428,11 +428,10 @@ def execute_hybrid_retrieval(
         return []
 
     # If corpus_docs is excessively large for on-the-fly BM25 (> 15,000 chunks)
-    if len(corpus_docs) > 15000:
-        if dense_results:
-            if on_step:
-                on_step("sparse", "skipped")
-            return _tag_dense_fallback(dense_results, strat, f"corpus_size_{len(corpus_docs)}_exceeds_realtime_sparse_capacity", top_k)
+    if len(corpus_docs) > 15000 and dense_results:
+        if on_step:
+            on_step("sparse", "skipped")
+        return _tag_dense_fallback(dense_results, strat, f"corpus_size_{len(corpus_docs)}_exceeds_realtime_sparse_capacity", top_k)
 
     # Step 3: Run Sparse BM25 Search
     if on_step:

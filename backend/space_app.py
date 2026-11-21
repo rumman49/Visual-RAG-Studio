@@ -12,8 +12,8 @@ os.environ.setdefault("VRS_DATABASE_URL", "sqlite:///./data/visual_rag_studio.db
 os.environ.setdefault("VRS_CHROMA_PATH", "./data/chroma")
 os.makedirs("./data", exist_ok=True)
 
-import gradio as gr  # noqa: E402
-import uvicorn  # noqa: E402
+import gradio as gr
+import uvicorn
 
 try:  # ZeroGPU hardware expects at least one @spaces.GPU function
     import spaces
@@ -24,7 +24,7 @@ try:  # ZeroGPU hardware expects at least one @spaces.GPU function
 except ImportError:
     pass
 
-from app.main import app as api  # noqa: E402
+from app.main import app as api
 
 with gr.Blocks(title="Visual RAG Studio API") as demo:
     gr.Markdown(

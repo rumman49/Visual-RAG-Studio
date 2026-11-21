@@ -2,19 +2,21 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import PurePath
+from typing import Any, Literal
 from urllib.parse import urlsplit
 from uuid import uuid4
 
+import httpx
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from starlette.requests import Request
 
 from app.config import Settings, get_settings
 from app.contracts import ChunkingChoiceMode, DocumentProfile
+from app.rag.agent import AgentApprovalPolicy, AgentExecutionMode, AgentOrchestrator
 from app.rag.chunking import (
     SUPPORTED_STRATEGIES,
     ChunkingError,
     MultiStrategyChunkPlan,
-    MultiStrategyChunkResult,
     chunk_document_multi,
     validate_settings,
 )
@@ -60,9 +62,8 @@ from app.rag.dependencies import (
 from app.rag.execution import execution_tracker
 from app.rag.graph import validate_traditional_graph
 from app.rag.parser import DocumentParseError, parse_document
-from app.rag.pipeline import ABSTENTION, PipelineError, _parsed, answer_query, index_document
-from app.rag.planner import IngestionPlan, IngestionPlanner, PlanningMode
-from app.rag.agent import AgentApprovalPolicy, AgentExecutionMode, AgentOrchestrator
+from app.rag.pipeline import PipelineError, _parsed, answer_query, index_document
+from app.rag.planner import IngestionPlanner, PlanningMode
 from app.rag.providers import (
     AnthropicProvider,
     ExtractiveGeneratorProvider,
@@ -80,7 +81,6 @@ from app.rag.recommendations import recommend_chunking
 from app.rag.storage import DocumentStore
 from app.rag.vector_store import (
     ChromaVectorStore,
-    MemoryVectorStore,
     VectorStoreError,
     get_vector_store_adapter,
 )
@@ -1234,9 +1234,7 @@ def query_documents(
     retrieval_strat = "semantic"
     if fuse_node or (retrieval_dense_node and str(retrieval_dense_node.config.get("strategy")) in ("hybrid", "rrf")):
         retrieval_strat = "hybrid"
-    elif retrieval_sparse_node and not retrieval_dense_node:
-        retrieval_strat = "bm25"
-    elif retrieval_dense_node and str(retrieval_dense_node.config.get("strategy")) in ("bm25", "keyword"):
+    elif retrieval_sparse_node and not retrieval_dense_node or retrieval_dense_node and str(retrieval_dense_node.config.get("strategy")) in ("bm25", "keyword"):
         retrieval_strat = "bm25"
     elif retrieval_dense_node:
         retrieval_strat = str(retrieval_dense_node.config.get("strategy", "semantic"))

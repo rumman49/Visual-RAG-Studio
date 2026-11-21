@@ -603,7 +603,7 @@ class OpenAIProvider:
         except httpx.TimeoutException as exc:
             raise ProviderError("OpenAI request timed out.") from exc
         except Exception as exc:
-            raise ProviderError(f"OpenAI connection failed: {str(exc)}") from exc
+            raise ProviderError(f"OpenAI connection failed: {exc!s}") from exc
 
         if res.is_error:
             try:
@@ -666,7 +666,7 @@ class GeminiProvider:
         except httpx.TimeoutException as exc:
             raise ProviderError("Gemini request timed out.") from exc
         except Exception as exc:
-            raise ProviderError(f"Gemini connection failed: {str(exc)}") from exc
+            raise ProviderError(f"Gemini connection failed: {exc!s}") from exc
 
         if res.is_error:
             try:
@@ -735,7 +735,7 @@ class AnthropicProvider:
         except httpx.TimeoutException as exc:
             raise ProviderError("Anthropic request timed out.") from exc
         except Exception as exc:
-            raise ProviderError(f"Anthropic connection failed: {str(exc)}") from exc
+            raise ProviderError(f"Anthropic connection failed: {exc!s}") from exc
 
         if res.is_error:
             try:

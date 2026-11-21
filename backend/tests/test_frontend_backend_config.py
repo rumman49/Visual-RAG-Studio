@@ -1,6 +1,7 @@
 """Verify frontend .env configuration and backend CORS/routes."""
 
 from pathlib import Path
+
 from fastapi.testclient import TestClient
 
 from app.main import app

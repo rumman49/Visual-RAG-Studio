@@ -11,20 +11,17 @@ Supports:
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Any
+from typing import Any, ClassVar
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.config import Settings
 from app.contracts import (
-    CompatibilityState,
     DocumentProfile,
-    EvidenceState,
-    StrategyCompatibility,
 )
 from app.rag.chunking import DEFAULT_SETTINGS, SUPPORTED_STRATEGIES
-from app.rag.multilingual import SUPPORTED_LANGUAGES, detect_language
+from app.rag.multilingual import detect_language
 from app.rag.parser import ParsedDocument
 
 
@@ -88,7 +85,7 @@ class IngestionPlan(BaseModel):
 class IngestionPlanner:
     """Plans ingestion strategies deterministically based on observed document profile signals."""
 
-    VERIFIED_EMBEDDING_MODELS = {
+    VERIFIED_EMBEDDING_MODELS: ClassVar[dict[str, dict[str, Any]]] = {
         "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2": {
             "provider": "sentence_transformers",
             "dimension": 384,

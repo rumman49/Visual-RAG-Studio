@@ -7,7 +7,6 @@ from typing import Literal
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
 _BACKEND_DIR = Path(__file__).resolve().parent.parent
 _DATA_CANDIDATE = _BACKEND_DIR / "data"
 _HAS_BACKEND_DATA = (_DATA_CANDIDATE / "visual_rag_studio.db").exists()

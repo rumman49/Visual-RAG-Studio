@@ -7,7 +7,6 @@ from app.contracts import (
     ArchitectureTemplateDefinition,
     CatalogEntryKind,
     ChunkingStrategyDefinition,
-    ChunkingStrategyStatus,
     ConfigFieldDefinition,
     ConfigValueType,
     ExecutionContract,
