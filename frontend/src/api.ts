@@ -36,6 +36,43 @@ export function apiUrl(path: string): string {
 }
 
 /**
+ * API key for hosted instances (AD-12). Held in module memory only: never written to
+ * localStorage/sessionStorage and never read from a VITE_ variable.
+ */
+let apiKey: string | null = null
+export type AuthFailure = 'api_key_required' | 'api_key_invalid'
+type AuthListener = (failure: AuthFailure) => void
+const authListeners = new Set<AuthListener>()
+
+export function setApiKey(key: string | null): void {
+  apiKey = key && key.trim() ? key.trim() : null
+}
+
+export function hasApiKey(): boolean {
+  return apiKey !== null
+}
+
+/** Subscribe to 401 responses caused by a missing or invalid API key. Returns an unsubscribe. */
+export function onAuthFailure(listener: AuthListener): () => void {
+  authListeners.add(listener)
+  return () => authListeners.delete(listener)
+}
+
+async function notifyIfAuthFailure(response: Response): Promise<Response> {
+  if (response.status !== 401) return response
+  try {
+    const body = await response.clone().json()
+    const code = body?.detail?.code
+    if (code === 'api_key_required' || code === 'api_key_invalid') {
+      authListeners.forEach((listener) => listener(code))
+    }
+  } catch {
+    // Non-JSON 401s are not ours.
+  }
+  return response
+}
+
+/**
  * Centralized fetch wrapper that routes all frontend API requests through the
  * environment-configured backend API base URL.
  */
@@ -50,11 +87,21 @@ export async function apiFetch(
         ? input.toString()
         : apiUrl(input.url)
 
-  if (input instanceof Request) {
-    return fetch(new Request(targetUrl, input))
+  const attachKey = targetUrl.match(/\/api\/v1(\/|$|\?)/) !== null && apiKey !== null
+  const withKey = (headers?: HeadersInit): Headers => {
+    const merged = new Headers(headers)
+    merged.set('X-API-Key', apiKey as string)
+    return merged
   }
 
-  return fetch(targetUrl, init)
+  if (input instanceof Request) {
+    const request = new Request(targetUrl, input)
+    const outgoing = attachKey ? new Request(request, { headers: withKey(request.headers) }) : request
+    return notifyIfAuthFailure(await fetch(outgoing))
+  }
+
+  const outgoingInit = attachKey ? { ...init, headers: withKey(init?.headers) } : init
+  return notifyIfAuthFailure(await fetch(targetUrl, outgoingInit))
 }
 
 /**

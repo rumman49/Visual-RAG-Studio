@@ -1,7 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { VisualBuilder } from './VisualBuilder'
+import { AuthBoundary } from './AuthBoundary'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode><VisualBuilder /></React.StrictMode>,
+  <React.StrictMode><AuthBoundary /></React.StrictMode>,
 )

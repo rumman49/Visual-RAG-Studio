@@ -37,7 +37,7 @@ story_location: _bmad-output/implementation-artifacts
 development_status:
   epic-1: in-progress
   1-1-ci-pipeline: done
-  1-2-api-key-required-for-non-loopback-access: backlog
+  1-2-api-key-required-for-non-loopback-access: review
   1-3-cors-limited-to-configured-origins: backlog
   1-4-secrets-kept-out-of-workflow-graphs: backlog
   1-5-reproducible-hosted-image: backlog

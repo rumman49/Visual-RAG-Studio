@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.auth import install_api_key_auth
 from app.config import get_settings
 from app.contracts import RegistrySnapshot, WorkflowValidationRequest
 from app.rag.graph import configured_provider_instances, validate_traditional_graph
@@ -14,6 +15,9 @@ from app.validation import validate_graph
 
 settings = get_settings()
 app = FastAPI(title=settings.app_name, version="0.1.0")
+
+# Registered before CORS so that 401 responses still receive CORS headers.
+install_api_key_auth(app, settings)
 
 app.add_middleware(
     CORSMiddleware,
@@ -45,6 +49,7 @@ def readiness() -> dict[str, object]:
     return {
         "status": "ready",
         "mode": settings.environment,
+        "auth": "required" if settings.api_key is not None else "none",
         "checks": {
             "configuration": "valid",
             "database": "not_checked",

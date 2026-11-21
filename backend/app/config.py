@@ -55,14 +55,20 @@ class Settings(BaseSettings):
     ollama_timeout_seconds: int = Field(default=90, ge=1, le=600)
     hf_timeout_seconds: int = Field(default=90, ge=1, le=600)
     max_context_chars: int = Field(default=18000, ge=1000, le=100000)
+    api_key: SecretStr | None = None
     max_upload_bytes: int = Field(default=10 * 1024 * 1024, ge=1, le=100 * 1024 * 1024)
 
     @model_validator(mode="after")
     def require_protection_outside_loopback(self) -> "Settings":
-        if self.host not in {"127.0.0.1", "localhost", "::1"}:
+        has_key = self.api_key is not None and bool(self.api_key.get_secret_value())
+        if self.api_key is not None and not has_key:
+            self.api_key = None
+        if self.environment == "production" and not has_key:
+            raise ValueError("VRS_API_KEY must be set when VRS_ENV=production.")
+        if self.host not in {"127.0.0.1", "localhost", "::1"} and not has_key:
             raise ValueError(
-                "Non-loopback binding is disabled until an authentication/access-control "
-                "boundary is implemented. Set VRS_HOST=127.0.0.1 for local development."
+                "Non-loopback binding requires VRS_API_KEY. Set VRS_API_KEY, or use "
+                "VRS_HOST=127.0.0.1 for local development."
             )
         return self
 
