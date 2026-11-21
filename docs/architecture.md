@@ -74,10 +74,10 @@ Dependencies point downward only. `registry`, `contracts` and `validation` impor
 - **Prevents:** runaway loops and unbounded tool use
 - **Rule:** The agent runs only tools in `allowed_tools`, within `max_steps`, `max_retrieval_iterations`, `token_budget` and `timeout_seconds`. Each step emits a structured trace entry (planning, retrieval, rerank, evaluate_evidence, reformulate_query, answer_generation, abstain).
 
-### AD-11 — Loopback-only until an auth boundary exists [ADOPTED, PARTLY RESOLVED]
+### AD-11 — Loopback-only until an auth boundary exists [ADOPTED]
 - **Binds:** config, deployment
 - **Prevents:** exposing an unauthenticated API
-- **Rule:** `Settings` rejects a non-loopback `VRS_HOST` unless `VRS_API_KEY` is set, and rejects `VRS_ENV=production` without a key. Any hosted deployment also needs a restricted CORS allow-list before it is considered supported. Current state: the API-key boundary is implemented (AD-12, Story 1.2), so the Docker/Space entrypoints, which bind `0.0.0.0` and set `VRS_ENV=production`, need a `VRS_API_KEY` secret to start. CORS still allows any origin with credentials (`main.py`) until Story 1.3; that remains an open conflict.
+- **Rule:** `Settings` rejects a non-loopback `VRS_HOST` unless `VRS_API_KEY` is set, and rejects `VRS_ENV=production` without a key. CORS is limited to `VRS_CORS_ORIGINS` (comma-separated, no wildcards; default `http://127.0.0.1:5173` and `http://localhost:5173`). Current state: the API-key boundary (AD-12, Story 1.2) and the CORS allow-list (Story 1.3) are implemented, so the Docker/Space entrypoints, which bind `0.0.0.0` and set `VRS_ENV=production`, need a `VRS_API_KEY` secret to start and `VRS_CORS_ORIGINS` set to the frontend URL.
 
 ### AD-12 — API key flow for hosted use [ADOPTED]
 - **Binds:** frontend `api.ts` and `AuthBoundary.tsx`, backend `auth.py` middleware, deployment

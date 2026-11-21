@@ -11,7 +11,7 @@ Local-first visual RAG workflow builder. React/TypeScript/Vite + React Flow in `
 - Never execute code, shell, SQL or package installs from imported graphs; only allow-listed node types (`docs/security.md`).
 - Never add silent provider fallback or implicit mocks; a failed provider surfaces its error.
 - Never mark a capability or template executable without recorded end-to-end evidence; unverified stays "planned" (`docs/capability-registry.md`).
-- Bind the backend to loopback unless `VRS_API_KEY` is set (production mode requires it); CORS is still open until Story 1.3.
+- Bind the backend to loopback unless `VRS_API_KEY` is set (production mode requires it); browser origins are limited to `VRS_CORS_ORIGINS`.
 
 ## Where things are
 

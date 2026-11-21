@@ -56,10 +56,26 @@ class Settings(BaseSettings):
     hf_timeout_seconds: int = Field(default=90, ge=1, le=600)
     max_context_chars: int = Field(default=18000, ge=1000, le=100000)
     api_key: SecretStr | None = None
+    # Comma-separated browser origins allowed to call the API (e.g. the Vercel URL).
+    cors_origins: str = ""
     max_upload_bytes: int = Field(default=10 * 1024 * 1024, ge=1, le=100 * 1024 * 1024)
+
+    @property
+    def cors_allowed_origins(self) -> list[str]:
+        """Configured origins, or the local Vite dev origins when none are set."""
+        configured = [o.strip().rstrip("/") for o in self.cors_origins.split(",") if o.strip()]
+        if configured:
+            return configured
+        return [f"http://{host}:5173" for host in ("127.0.0.1", "localhost")]
 
     @model_validator(mode="after")
     def require_protection_outside_loopback(self) -> "Settings":
+        for origin in self.cors_allowed_origins:
+            if "*" in origin or not origin.startswith(("http://", "https://")):
+                raise ValueError(
+                    f"VRS_CORS_ORIGINS entry {origin!r} must be an explicit http(s) origin; "
+                    "wildcards are not allowed."
+                )
         has_key = self.api_key is not None and bool(self.api_key.get_secret_value())
         if self.api_key is not None and not has_key:
             self.api_key = None
